@@ -4,6 +4,9 @@ import json
 import fu
 
 
+
+
+
 class EchoServerProtocol:
     command = {'00': fu.write_user_to_the_db, '01': fu.read_user_from_db}
 
@@ -21,12 +24,14 @@ class EchoServerProtocol:
         ans = {'code': 0}
         if com in list(EchoServerProtocol.command.keys()):
             try:
-                res = EchoServerProtocol.command[com](body)
+                code, *res = EchoServerProtocol.command[com](body)
+                res = res[0] if len(res) !=0 else None
                 ans['body'] = res
+                ans['code'] = code
             finally:
                 pass
         else:
-            ans['code'] = 1
+            ans['code'] = 9
 
         self.transport.sendto(json.dumps(ans).encode(), addr)
 
