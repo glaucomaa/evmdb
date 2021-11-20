@@ -1,14 +1,27 @@
-import db
+import motor.motor_asyncio
+import pydantic
+import json
+from fastapi import Query
+
+__client = motor.motor_asyncio.AsyncIOMotorClient('localhost', 27017)
+__users = __client['PerfectGame']['users']
 
 
-def write_user_to_the_db(user: dict):
-    db.db[str(user['id'])] = user
-    db.update_db()
-    return 0,
+class User(pydantic.BaseModel):
+    user_name: str = Query('', min_length=1, max_length=50)
+    x: int
+    y: int
 
 
-def read_user_from_db(_id):
-    if str(_id) in db.db:
-        return 0, db.db[str(_id)]
-    return 1,
+async def get_user(user_name) -> dict:
+    ans = await __users.find_one({'user_name': user_name})
+    return ans
+
+
+async def post_user(user: User):
+    info = json.loads(user.json())
+    if await __users.find_one({'user_name': user.user_name}) is None:
+        return await __users.insert_one(info)
+    else:
+        return await __users.replace_one({'user_name': user.user_name}, info)
 
