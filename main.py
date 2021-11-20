@@ -1,54 +1,20 @@
-import asyncio
-import json
+from fastapi import FastAPI, HTTPException
 
 import fu
+from fu import User
+
+app = FastAPI()
 
 
+@app.get("/user/{user_name: str}", response_model=User)
+async def root(user_name: str):
+    ans = await fu.get_user(user_name)
+    if ans is None:
+        raise HTTPException(404, "Player was not found!")
+    return ans
 
 
-
-class EchoServerProtocol:
-    command = {'00': fu.write_user_to_the_db, '01': fu.read_user_from_db}
-
-    def connection_made(self, transport):
-        # print('_')
-        self.transport = transport
-
-    def datagram_received(self, data, addr):
-        message = data.decode()
-        print(message)
-        message = json.loads(message)
-        body = message['body']
-        com = message['command']
-
-        ans = {'code': 0}
-        if com in list(EchoServerProtocol.command.keys()):
-            try:
-                code, *res = EchoServerProtocol.command[com](body)
-                res = res[0] if len(res) !=0 else None
-                ans['body'] = res
-                ans['code'] = code
-            finally:
-                pass
-        else:
-            ans['code'] = 9
-
-        self.transport.sendto(json.dumps(ans).encode(), addr)
-
-
-async def main():
-    print("Starting UDP server")
-
-    loop = asyncio.get_running_loop()
-
-    transport, protocol = await loop.create_datagram_endpoint(
-        lambda: EchoServerProtocol(),
-        local_addr=('127.0.0.1', 9999))
-
-    try:
-        await asyncio.sleep(float('inf'))
-    finally:
-        transport.close()
-
-
-asyncio.run(main())
+@app.post("/user/{user: User}")
+async def root(user: User):
+    await fu.post_user(user)
+    return
